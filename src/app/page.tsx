@@ -55,7 +55,8 @@ export default function WaiterInteraction() {
             try {
               const dataObj = JSON.parse(trimmed.substring(6).trim());
               
-              if (dataObj.text) {
+              // Poprawka: sprawdzanie czy text istnieje, nawet jak jest pusty (zastępuje !dataObj.text)
+              if (dataObj.text !== undefined) {
                 assistantResponse += dataObj.text;
                 setMessages((prev) => {
                   const newMessages = [...prev];
@@ -63,10 +64,11 @@ export default function WaiterInteraction() {
                   return newMessages;
                 });
               }
-              if (dataObj.ui_state && dataObj.ui_state.options) {
+              // Poprawka: szukamy bezpośrednio 'options', nie w 'ui_state'
+              if (dataObj.options) {
                 setMessages((prev) => {
                   const newMessages = [...prev];
-                  newMessages[newMessages.length - 1].options = dataObj.ui_state.options;
+                  newMessages[newMessages.length - 1].options = dataObj.options;
                   return newMessages;
                 });
               }
