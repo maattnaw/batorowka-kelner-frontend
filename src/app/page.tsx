@@ -106,7 +106,7 @@ export default function WaiterInteraction() {
               className={`max-w-lg px-4 py-2 rounded-lg shadow ${
                 msg.role === 'user'
                   ? 'bg-blue-600 rounded-br-none'
-                  - 'bg-gray-700 rounded-bl-none'
+                  : 'bg-gray-700 rounded-bl-none'
               }`}
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
