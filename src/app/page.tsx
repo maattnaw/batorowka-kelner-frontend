@@ -38,46 +38,46 @@ export default function WaiterInteraction() {
 
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
-      let assistantResponse = '';
+      let fullResponse = '';
       
       setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        fullResponse += decoder.decode(value, { stream: true });
+      }
 
-        const chunkText = decoder.decode(value, { stream: true });
-        const lines = chunkText.split('\n');
+      // Po zakończeniu strumienia, parsujemy całość
+      const jsonStart = fullResponse.indexOf('---JSON_START---');
+      let finalContent = fullResponse;
+      let options: string[] = [];
 
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('data: ')) {
-            try {
-              const dataObj = JSON.parse(trimmed.substring(6).trim());
-              
-              // Poprawka: sprawdzanie czy text istnieje, nawet jak jest pusty (zastępuje !dataObj.text)
-              if (dataObj.text !== undefined) {
-                assistantResponse += dataObj.text;
-                setMessages((prev) => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1].content = assistantResponse;
-                  return newMessages;
-                });
-              }
-              // Poprawka: szukamy bezpośrednio 'options', nie w 'ui_state'
-              if (dataObj.options) {
-                setMessages((prev) => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1].options = dataObj.options;
-                  return newMessages;
-                });
-              }
-            } catch (e) {
-              console.error("Parse error:", e);
-            }
-          }
+      if (jsonStart !== -1) {
+        const textPart = fullResponse.substring(0, jsonStart).trim();
+        const jsonPart = fullResponse.substring(jsonStart + 16).trim();
+        finalContent = textPart;
+        
+        try {
+          const jsonObj = JSON.parse(jsonPart);
+          options = jsonObj.ui_state?.options || [];
+        } catch (e) {
+          console.error("Parse error:", e);
+          finalContent = "Przepraszamy, problem z systemem.";
+          options = [];
         }
       }
+
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        newMessages[newMessages.length - 1] = { 
+            role: 'assistant', 
+            content: finalContent,
+            options: options 
+        };
+        return newMessages;
+      });
+
     } catch (e) {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Błąd połączenia z kelnerem.' }]);
     } finally {
