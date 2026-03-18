@@ -1,0 +1,6 @@
+firebase-admin
+firebase-functions
+google-generativeai
+google-cloud-firestore
+functions-framework
+cloudevents>=1.12.1
