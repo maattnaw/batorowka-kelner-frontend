@@ -92,22 +92,36 @@ export default function WaiterInteraction() {
               
               const dataObj = JSON.parse(jsonStr);
               
-              if (dataObj.type === 'chunk' && dataObj.text) {
+              // 1. Odbieranie tekstu
+              // Backend wysyła np. {"text": "..."} lub {"type": "chunk", "text": "..."}
+              if (dataObj.text && dataObj.type !== 'actions' && dataObj.type !== 'end') {
                 assistantResponse += dataObj.text;
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   newMessages[newMessages.length - 1].content = assistantResponse;
                   return newMessages;
                 });
-              } else if (dataObj.type === 'end') {
-                // POJAWIŁY SIĘ OPCJE Z BACKENDU!
-                const options = dataObj.options || [];
-                setMessages((prev) => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1].options = options;
-                  return newMessages;
-                });
               }
+              
+              // 2. Odbieranie opcji na koniec streamu
+              // Backend wysyła {"type": "actions", "ui_state": {"options": [...]}}
+              if (dataObj.type === 'actions' || dataObj.type === 'end' || (dataObj.ui_state && dataObj.ui_state.options)) {
+                let options: string[] = [];
+                if (dataObj.ui_state && dataObj.ui_state.options) {
+                  options = dataObj.ui_state.options;
+                } else if (dataObj.options) {
+                  options = dataObj.options;
+                }
+                
+                if (options.length > 0) {
+                  setMessages((prev) => {
+                    const newMessages = [...prev];
+                    newMessages[newMessages.length - 1].options = options;
+                    return newMessages;
+                  });
+                }
+              }
+
             } catch (e) {
               console.error("Błąd parsowania SSE:", e, line);
             }
@@ -137,24 +151,20 @@ export default function WaiterInteraction() {
     <div 
       className="flex flex-col h-screen text-white font-sans relative"
       style={{
-        // Zmiana backgroundSize z "cover" na "contain", żeby nie rozciągało logo
         backgroundImage: "url('/fresca-bg.jpg')",
         backgroundSize: "contain",
-        backgroundPosition: "center top", // Logo trzyma się góry ekranu
+        backgroundPosition: "center top",
         backgroundRepeat: "no-repeat",
-        backgroundColor: "#000" // Reszta ekranu czarna
+        backgroundColor: "#000"
       }}
     >
-      {/* Bardzo mocne przyciemnienie tła (aż 90%), by teksty były idealnie czytelne na logo */}
       <div 
         className="absolute inset-0 z-0" 
         style={{ backgroundColor: "rgba(0, 0, 0, 0.85)" }}
       ></div>
 
-      {/* Główna zawartość */}
       <div className="relative z-10 flex flex-col h-full max-w-3xl w-full mx-auto shadow-2xl bg-black/50 border-x border-white/5">
         
-        {/* Nagłówek */}
         <header className="pt-6 pb-4 px-4 text-center border-b border-[#D4AF37]/30 backdrop-blur-sm" style={{ backgroundColor: 'rgba(5, 5, 5, 0.6)' }}>
           <h1 
             className="text-3xl md:text-4xl font-light tracking-widest text-white uppercase mb-1" 
@@ -175,25 +185,30 @@ export default function WaiterInteraction() {
           </div>
         </header>
 
-        {/* Sekcja Czatu */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6" style={{ scrollBehavior: 'smooth' }}>
           {messages.map((msg, index) => (
             <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div
-                className={`max-w-[90%] md:max-w-[80%] px-5 py-4 shadow-xl border ${
-                  msg.role === 'user'
-                    ? 'rounded-2xl rounded-tr-sm font-medium'
-                    : 'rounded-2xl rounded-tl-sm'
-                }`}
-                style={{
-                  backgroundColor: msg.role === 'user' ? '#D4AF37' : 'rgba(24, 24, 27, 0.95)',
-                  color: msg.role === 'user' ? '#000000' : '#FFFFFF',
-                  borderColor: msg.role === 'user' ? '#C5A017' : 'rgba(212, 175, 55, 0.3)',
-                  boxShadow: msg.role === 'user' ? '0 4px 15px rgba(212, 175, 55, 0.2)' : '0 4px 15px rgba(0, 0, 0, 0.5)'
-                }}
-              >
-                <p className="whitespace-pre-wrap leading-relaxed text-[15px]">{msg.content}</p>
-              </div>
+              
+              {/* Ukrywaj dymek tylko wtedy, gdy NIE MA ani tekstu, ani opcji (bardzo rzadki przypadek początkowego ładowania) */}
+              {(msg.content || !msg.options) && (
+                <div
+                  className={`max-w-[90%] md:max-w-[80%] px-5 py-4 shadow-xl border ${
+                    msg.role === 'user'
+                      ? 'rounded-2xl rounded-tr-sm font-medium'
+                      : 'rounded-2xl rounded-tl-sm'
+                  }`}
+                  style={{
+                    backgroundColor: msg.role === 'user' ? '#D4AF37' : 'rgba(24, 24, 27, 0.95)',
+                    color: msg.role === 'user' ? '#000000' : '#FFFFFF',
+                    borderColor: msg.role === 'user' ? '#C5A017' : 'rgba(212, 175, 55, 0.3)',
+                    boxShadow: msg.role === 'user' ? '0 4px 15px rgba(212, 175, 55, 0.2)' : '0 4px 15px rgba(0, 0, 0, 0.5)'
+                  }}
+                >
+                  <p className="whitespace-pre-wrap leading-relaxed text-[15px]">
+                    {msg.content || (isLoading && index === messages.length - 1 ? 'Myślę...' : '')}
+                  </p>
+                </div>
+              )}
               
               {/* WYŚWIETLANIE PRZYCISKÓW (OPCJI) */}
               {msg.role === 'assistant' && msg.options && msg.options.length > 0 && (
@@ -227,7 +242,6 @@ export default function WaiterInteraction() {
           <div ref={messagesEndRef} />
         </main>
 
-        {/* Input Form */}
         <footer className="p-4 md:p-6 border-t border-white/10" style={{ backgroundColor: 'rgba(5, 5, 5, 0.95)' }}>
           <form onSubmit={handleSubmit} className="flex items-center space-x-3 bg-black p-2 rounded-full border border-gray-700 shadow-inner">
             <input
