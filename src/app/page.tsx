@@ -16,7 +16,12 @@ export default function WaiterInteraction() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setSessionId('table-' + Math.random().toString(36).substring(2, 9));
+    let storedSessionId = localStorage.getItem('waiter_session_id');
+    if (!storedSessionId) {
+      storedSessionId = 'session-' + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('waiter_session_id', storedSessionId);
+    }
+    setSessionId(storedSessionId);
     setMessages([{ role: 'assistant', content: 'Benvenuti! Jestem Wirtualnym Kelnerem Fresca Napoli. W czym mogę pomóc?', options: ["Menu", "Wezwij Kelnera", "Rachunek"] }]);
   }, []);
 
@@ -33,7 +38,7 @@ export default function WaiterInteraction() {
       const response = await fetch('https://handle-waiter-interaction-xqhpwhjfha-ey.a.run.app', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table_id: sessionId, message: text, payload: {} }),
+        body: JSON.stringify({ session_id: sessionId, action: 'message', message: text, payload: {} }),
       });
 
       const reader = response.body!.getReader();
@@ -105,6 +110,9 @@ export default function WaiterInteraction() {
           <h2 className="text-xl md:text-2xl font-bold uppercase mb-3" style={{ color: '#D4AF37', fontFamily: 'Georgia, serif', letterSpacing: '0.25em' }}>
             Fresca Napoli
           </h2>
+          <p className="text-xs md:text-sm text-white/60 mt-2 font-light">
+            Jesteś na coś uczulony? Chcesz usunąć pozycję z zamówienia? Po prostu mi o tym napisz!
+          </p>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6" style={{ scrollBehavior: 'smooth' }}>
