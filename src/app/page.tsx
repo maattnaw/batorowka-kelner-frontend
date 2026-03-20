@@ -110,6 +110,9 @@ export default function WaiterInteraction() {
           <h2 className="text-xl md:text-2xl font-bold uppercase mb-3" style={{ color: '#D4AF37', fontFamily: 'Georgia, serif', letterSpacing: '0.25em' }}>
             Fresca Napoli
           </h2>
+          <p className="text-xs md:text-sm text-white/60 mt-2 font-light">
+            Jesteś na coś uczulony? Chcesz usunąć pozycję z zamówienia? Po prostu mi o tym napisz!
+          </p>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6" style={{ scrollBehavior: 'smooth' }}>
