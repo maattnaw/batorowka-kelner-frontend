@@ -17,7 +17,7 @@ export default function WaiterInteraction() {
 
   useEffect(() => {
     setSessionId('table-' + Math.random().toString(36).substring(2, 9));
-    setMessages([{ role: 'assistant', content: 'Benvenuti! Jestem Wirtualnym Kelnerem Fresca Napoli. W czym mogę pomóc?', options: ["Menu", "Wezwij Kelnera", "Rachunek"] }]);
+    setMessages([{ role: 'assistant', content: 'Benvenuti! Jestem Wirtualnym Kelnerem Fresca Napoli. W czym mogę pomóc?', options: ["Menu", "Napoje", "Desery"] }]);
   }, []);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,7 +30,7 @@ export default function WaiterInteraction() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://handle-waiter-interaction-xqhpwhjfha-ey.a.run.app', {
+      const response = await fetch('https://europe-west3-project-2ccbfda4-273a-4a1a-ac8.cloudfunctions.net/handle_waiter_interaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_id: sessionId, message: text, payload: {} }),
