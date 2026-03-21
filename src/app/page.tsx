@@ -36,9 +36,10 @@ export default function WaiterInteraction() {
         body: JSON.stringify({ table_id: sessionId, message: text, payload: {} }),
       });
 
-      const reader = response.body!.getReader();
+     const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let assistantResponse = '';
+      let buffer = ''; // 1. INICJALIZACJA BUFORA
       
       setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
@@ -46,13 +47,23 @@ export default function WaiterInteraction() {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunkText = decoder.decode(value, { stream: true });
-        const lines = chunkText.split('\n');
+        // 2. DODAJEMY NOWY FRAGMENT DO BUFORA
+        buffer += decoder.decode(value, { stream: true });
+        
+        // 3. DZIELIMY BUFOR NA LINIE
+        const lines = buffer.split('\n');
+
+        // 4. OSTATNI ELEMENT (MOŻE BYĆ UCIĘTY) WRACA DO BUFORA
+        // Jeśli chunk kończył się znakiem \n, pop() zwróci pusty string, co jest poprawne.
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           const trimmed = line.trim();
           if (trimmed.startsWith('data: ')) {
             try {
+              // Dodatkowe zabezpieczenie: ignorujemy [DONE], które jest standardem w SSE OpenAI
+              if (trimmed.substring(6).trim() === '[DONE]') continue; 
+
               const dataObj = JSON.parse(trimmed.substring(6).trim());
               
               if (dataObj.type === 'chunk' && dataObj.text) {
@@ -63,7 +74,6 @@ export default function WaiterInteraction() {
                   return newMessages;
                 });
               }
-              // POPRAWKA: pobieramy options bezpośrednio z dataObj
               if (dataObj.type === 'end' && dataObj.options) {
                 setMessages((prev) => {
                   const newMessages = [...prev];
@@ -72,7 +82,7 @@ export default function WaiterInteraction() {
                 });
               }
             } catch (e) {
-              console.error("Parse error:", e);
+              console.error("Parse error na linii:", trimmed, e);
             }
           }
         }
