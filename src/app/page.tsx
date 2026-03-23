@@ -30,7 +30,7 @@ export default function WaiterInteraction() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://europe-west3-project-2ccbfda4-273a-4a1a-ac8.cloudfunctions.net/handle_waiter_interaction', {
+      const response = await fetch('https://europe-central2-project-2ccbfda4-273a-4a1a-ac8.cloudfunctions.net/fresca-waiter-v1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_id: sessionId, message: text, payload: {} }),
