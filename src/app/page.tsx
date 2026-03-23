@@ -74,7 +74,7 @@ export default function WaiterInteraction() {
                   return newMessages;
                 });
               }
-              if (dataObj.type === 'end' && dataObj.options) {
+              if ((dataObj.type === 'actions' || dataObj.type === 'end') && (dataObj.options || dataObj.ui_state?.options)) {
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   newMessages[newMessages.length - 1].options = dataObj.options;
